@@ -40,6 +40,7 @@ exports.get = async (key) => {
   try {
     // First check memory cache
     if (memoryCache.has(key)) {
+      logger.debug(`Cache hit (memory) for key: ${key}`);
       return memoryCache.get(key);
     }
     
@@ -49,6 +50,8 @@ exports.get = async (key) => {
     
     try {
       const stat = await fs.stat(filePath);
+      logger.debug(`Found file cache at ${filePath}, size: ${stat.size} bytes`);
+      
       const data = await fs.readFile(filePath);
       
       // Add to memory cache for faster access next time
@@ -58,12 +61,14 @@ exports.get = async (key) => {
       return data;
     } catch (error) {
       if (error.code !== 'ENOENT') {
-        logger.error(`Error reading from file cache: ${error.message}`);
+        logger.error(`Error reading from file cache: ${error.message}`, { error });
+      } else {
+        logger.debug(`No file cache found for key: ${key}`);
       }
       return null;
     }
   } catch (error) {
-    logger.error(`Cache get error: ${error.message}`);
+    logger.error(`Cache get error: ${error.message}`, { error });
     return null;
   }
 };
@@ -78,6 +83,14 @@ exports.get = async (key) => {
  */
 exports.set = async (key, data, ttl) => {
   try {
+    logger.debug(`Trying to cache data with key: ${key}, size: ${data.length} bytes, ttl: ${ttl}s`);
+    
+    // Make sure we have valid data
+    if (!data || !Buffer.isBuffer(data)) {
+      logger.error(`Invalid data provided for caching. Key: ${key}, Data type: ${typeof data}`);
+      return false;
+    }
+    
     // Store in memory cache
     memoryCache.set(key, data, ttl);
     
@@ -86,11 +99,18 @@ exports.set = async (key, data, ttl) => {
     const filePath = path.join(CACHE_DIR, `${key}.bin`);
     
     await fs.writeFile(filePath, data);
-    logger.debug(`Cached screenshot with key: ${key}`);
     
-    return true;
+    // Verify the file was written correctly
+    try {
+      const stat = await fs.stat(filePath);
+      logger.debug(`Cached screenshot with key: ${key}, size: ${stat.size} bytes`);
+      return true;
+    } catch (statError) {
+      logger.error(`Failed to verify cached file: ${statError.message}`);
+      return false;
+    }
   } catch (error) {
-    logger.error(`Cache set error: ${error.message}`);
+    logger.error(`Cache set error: ${error.message}`, { stack: error.stack });
     return false;
   }
 };

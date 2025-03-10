@@ -16,13 +16,17 @@ const routes = require('./routes');
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Trust proxy - important when running behind a reverse proxy
+app.set('trust proxy', 1);
+
 // Apply security middleware
 app.use(helmet());
 app.use(cors({
-    origin: process.env.ALLOWED_ORIGINS ? 
-      (process.env.ALLOWED_ORIGINS === '*' ? '*' : process.env.ALLOWED_ORIGINS.split(',')) 
-      : '*'
-  }));
+  origin: process.env.ALLOWED_ORIGINS ? 
+    (process.env.ALLOWED_ORIGINS === '*' ? '*' : process.env.ALLOWED_ORIGINS.split(',')) 
+    : '*'
+}));
+
 // Apply rate limiting
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || 60000),

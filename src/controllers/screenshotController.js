@@ -24,15 +24,18 @@ exports.captureScreenshot = async (req, res) => {
     
     // Generate a cache key based on the request parameters
     const cacheKey = generateCacheKey(params);
+    logger.info(`Generated cache key for ${url}: ${cacheKey}`);
     
     // Check if we have a cached version
-    const cacheTime = parseInt(params.cacheTime !== undefined ? params.cacheTime : process.env.DEFAULT_CACHE_TIME);
+    const cacheTime = parseInt(params.cacheTime !== undefined ? params.cacheTime : process.env.DEFAULT_CACHE_TIME || 3600);
+    
+    logger.info(`Cache time for request: ${cacheTime} seconds`);
     
     if (cacheTime > 0) {
       const cachedScreenshot = await cacheService.get(cacheKey);
       
       if (cachedScreenshot) {
-        logger.info(`Serving cached screenshot for ${url}`);
+        logger.info(`Cache HIT for ${url} with key ${cacheKey}`);
         
         // Set appropriate content type
         const contentType = getContentType(params.format || 'png');
@@ -40,7 +43,11 @@ exports.captureScreenshot = async (req, res) => {
         res.set('X-Cache', 'HIT');
         
         return res.send(cachedScreenshot);
+      } else {
+        logger.info(`Cache MISS for ${url} with key ${cacheKey}`);
       }
+    } else {
+      logger.info(`Caching disabled for this request`);
     }
     
     // No cache hit, capture a new screenshot
@@ -50,7 +57,12 @@ exports.captureScreenshot = async (req, res) => {
     
     // Cache the screenshot if caching is enabled
     if (cacheTime > 0) {
-      await cacheService.set(cacheKey, screenshot, cacheTime);
+      try {
+        const cacheSuccess = await cacheService.set(cacheKey, screenshot, cacheTime);
+        logger.info(`Caching result for ${url}: ${cacheSuccess ? 'SUCCESS' : 'FAILED'}`);
+      } catch (cacheError) {
+        logger.error(`Error caching screenshot: ${cacheError.message}`, { stack: cacheError.stack });
+      }
     }
     
     // Set appropriate content type

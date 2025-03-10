@@ -32,8 +32,12 @@ async function getBrowser() {
         '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
         '--disable-gpu',
+        '--font-render-hinting=none',
+        '--disable-web-security', // Allow cross-origin requests
+        '--disable-features=IsolateOrigins,site-per-process', // Disable site isolation
         ...puppeteerArgs
       ],
+      ignoreHTTPSErrors: true, // Ignore HTTPS errors
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH
     });
     
@@ -78,9 +82,13 @@ exports.captureScreenshot = async (options) => {
       height
     });
     
-    // Set user agent if provided
+    // Set default user agent with higher Chrome version if not specified
+    const defaultUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+    
     if (options.userAgent) {
       await page.setUserAgent(options.userAgent);
+    } else {
+      await page.setUserAgent(defaultUserAgent);
     }
     
     // Set extra HTTP headers if provided
@@ -93,15 +101,27 @@ exports.captureScreenshot = async (options) => {
       }
     }
     
+    // Set default headers to better emulate a real browser
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Connection': 'keep-alive',
+      'Upgrade-Insecure-Requests': '1'
+    });
+    
     // Enable dark mode if requested
-    if (options.darkMode === 'true') {
+    if (options.darkMode === 'true' || options.darkMode === true) {
       await page.emulateMediaFeatures([
         { name: 'prefers-color-scheme', value: 'dark' }
       ]);
     }
     
-    // Setup request interception if needed
-    if (options.blockAds === 'true') {
+    // Enable JavaScript and CSS
+    await page.setJavaScriptEnabled(true);
+    
+    // Block tracking and ad scripts if requested
+    if (options.blockAds === 'true' || options.blockAds === true) {
       await page.setRequestInterception(true);
       page.on('request', (request) => {
         const requestUrl = request.url().toLowerCase();
@@ -122,32 +142,75 @@ exports.captureScreenshot = async (options) => {
       });
     }
     
-    // Navigate to the URL
+    // Set default timeout
     const maxLoadTime = parseInt(options.maxLoadTime) || 30000;
+    page.setDefaultNavigationTimeout(maxLoadTime);
+    page.setDefaultTimeout(maxLoadTime);
+    
+    // Navigate to the URL with improved waitUntil option
+    let waitUntilOption = options.waitUntil || 'networkidle2';
+    
+    // For Nuxt and other SPAs, try to wait longer for full page rendering
+    if (options.minLoadTime >= 5000 || options.fullPage === 'true' || options.fullPage === true) {
+      // Use a more strict waitUntil for full page captures
+      waitUntilOption = 'networkidle0';
+    }
+    
+    logger.info(`Navigating to ${options.url} with waitUntil: ${waitUntilOption}`);
     
     await page.goto(options.url, {
-      waitUntil: options.waitUntil || 'networkidle2',
+      waitUntil: waitUntilOption,
       timeout: maxLoadTime
     });
     
     // Wait for additional time if specified
     const minLoadTime = parseInt(options.minLoadTime) || 0;
     if (minLoadTime > 0) {
+      logger.debug(`Waiting additional ${minLoadTime}ms for page resources`);
       await new Promise(resolve => setTimeout(resolve, minLoadTime));
     }
     
     // Wait for selector if specified
     if (options.waitForSelector) {
-      await page.waitForSelector(options.waitForSelector, { 
-        timeout: maxLoadTime 
-      });
+      logger.debug(`Waiting for selector: ${options.waitForSelector}`);
+      try {
+        await page.waitForSelector(options.waitForSelector, { 
+          timeout: maxLoadTime 
+        });
+      } catch (error) {
+        logger.warn(`Selector ${options.waitForSelector} not found within timeout`);
+        // Continue anyway
+      }
     }
+    
+    // For Nuxt, React, Vue and other SPAs, wait for app to be fully loaded
+    try {
+      // Wait for common SPA containers
+      for (const selector of ['#__nuxt', '#app', '#root', '#__next', '.main-content']) {
+        const element = await page.$(selector);
+        if (element) {
+          logger.debug(`Found SPA container: ${selector}`);
+          // Wait a bit more for SPA to render
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          break;
+        }
+      }
+    } catch (e) {
+      // Ignore errors - just a best effort
+    }
+    
+    // Make sure fonts are loaded
+    await page.evaluate(() => {
+      if (document.fonts && typeof document.fonts.ready.then === 'function') {
+        return document.fonts.ready;
+      }
+    });
     
     // Take the screenshot
     const screenshotOptions = {
-      fullPage: options.fullPage === 'true',
+      fullPage: options.fullPage === 'true' || options.fullPage === true,
       type: (options.format === 'jpeg' || options.format === 'jpg') ? 'jpeg' : 'png',
-      omitBackground: options.transparent === 'true'
+      omitBackground: options.transparent === 'true' || options.transparent === true
     };
     
     // Add quality option for JPEG

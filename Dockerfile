@@ -1,4 +1,4 @@
-FROM node:18-slim
+FROM node:20-slim
 
 # Install latest Chrome and dependencies needed for Puppeteer
 RUN apt-get update \
@@ -20,8 +20,9 @@ RUN npm ci --omit=dev
 # Copy app source
 COPY . .
 
-# Create directory for screenshots cache
-RUN mkdir -p /usr/src/app/cache
+# Create directory for screenshots cache and logs
+RUN mkdir -p /usr/src/app/cache /usr/src/app/logs && \
+    chmod -R 777 /usr/src/app/cache /usr/src/app/logs
 
 # Set environment variables
 ENV NODE_ENV=production
