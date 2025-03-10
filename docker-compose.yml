@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  shotapi:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MAX_CONCURRENT_PAGES=5
+      - DEFAULT_CACHE_TIME=3600
+      - MAX_CACHE_SIZE=100
+    volumes:
+      - cache-data:/usr/src/app/cache
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  cache-data:

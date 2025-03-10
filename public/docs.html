@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShotAPI Documentation</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1, h2, h3 {
+      margin-top: 1.5em;
+    }
+    code {
+      background-color: #f5f5f5;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 20px 0;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .api-example {
+      margin: 15px 0;
+    }
+    .example-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>ShotAPI Documentation</h1>
+  
+  <p>
+    ShotAPI is a simple service that allows you to capture screenshots of any web page with customizable parameters.
+    It's designed to be easy to use and deploy with Docker.
+  </p>
+  
+  <h2>Basic Usage</h2>
+  
+  <p>To capture a screenshot, make a GET request to the <code>/screenshot</code> endpoint with the URL you want to capture:</p>
+  
+  <pre><code>GET /screenshot?url=https://example.com</code></pre>
+  
+  <h2>Parameters</h2>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Description</th>
+        <th>Default</th>
+        <th>Example</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>url</code></td>
+        <td>The URL to capture (required)</td>
+        <td>-</td>
+        <td><code>https://example.com</code></td>
+      </tr>
+      <tr>
+        <td><code>width</code></td>
+        <td>Viewport width in pixels</td>
+        <td>1280</td>
+        <td><code>width=1920</code></td>
+      </tr>
+      <tr>
+        <td><code>height</code></td>
+        <td>Viewport height in pixels</td>
+        <td>800</td>
+        <td><code>height=1080</code></td>
+      </tr>
+      <tr>
+        <td><code>format</code></td>
+        <td>Output format (png, jpeg, pdf)</td>
+        <td>png</td>
+        <td><code>format=jpeg</code></td>
+      </tr>
+      <tr>
+        <td><code>quality</code></td>
+        <td>Image quality (1-100, jpeg only)</td>
+        <td>80</td>
+        <td><code>quality=90</code></td>
+      </tr>
+      <tr>
+        <td><code>fullPage</code></td>
+        <td>Capture full page height</td>
+        <td>false</td>
+        <td><code>fullPage=true</code></td>
+      </tr>
+      <tr>
+        <td><code>minLoadTime</code></td>
+        <td>Minimum page load time in ms</td>
+        <td>0</td>
+        <td><code>minLoadTime=2000</code></td>
+      </tr>
+      <tr>
+        <td><code>maxLoadTime</code></td>
+        <td>Maximum page load time in ms</td>
+        <td>30000</td>
+        <td><code>maxLoadTime=60000</code></td>
+      </tr>
+      <tr>
+        <td><code>cacheTime</code></td>
+        <td>Cache time in seconds (0 to disable)</td>
+        <td>3600</td>
+        <td><code>cacheTime=86400</code></td>
+      </tr>
+      <tr>
+        <td><code>darkMode</code></td>
+        <td>Enable dark mode emulation</td>
+        <td>false</td>
+        <td><code>darkMode=true</code></td>
+      </tr>
+      <tr>
+        <td><code>userAgent</code></td>
+        <td>Custom user agent string</td>
+        <td>-</td>
+        <td><code>userAgent=Mozilla/5.0...</code></td>
+      </tr>
+      <tr>
+        <td><code>selector</code></td>
+        <td>Capture specific element</td>
+        <td>-</td>
+        <td><code>selector=#content</code></td>
+      </tr>
+      <tr>
+        <td><code>waitForSelector</code></td>
+        <td>Wait for element before capturing</td>
+        <td>-</td>
+        <td><code>waitForSelector=#loaded</code></td>
+      </tr>
+      <tr>
+        <td><code>transparent</code></td>
+        <td>Transparent background (png only)</td>
+        <td>false</td>
+        <td><code>transparent=true</code></td>
+      </tr>
+      <tr>
+        <td><code>blockAds</code></td>
+        <td>Block common ad networks</td>
+        <td>false</td>
+        <td><code>blockAds=true</code></td>
+      </tr>
+      <tr>
+        <td><code>waitUntil</code></td>
+        <td>Page load event to wait for</td>
+        <td>networkidle2</td>
+        <td><code>waitUntil=load</code></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <h3>PDF-specific parameters</h3>
+  
+  <p>These parameters are only applicable when <code>format=pdf</code>:</p>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Description</th>
+        <th>Default</th>
+        <th>Example</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>pdfFormat</code></td>
+        <td>PDF paper format</td>
+        <td>A4</td>
+        <td><code>pdfFormat=Letter</code></td>
+      </tr>
+      <tr>
+        <td><code>printBackground</code></td>
+        <td>Print background graphics</td>
+        <td>true</td>
+        <td><code>printBackground=false</code></td>
+      </tr>
+      <tr>
+        <td><code>marginTop</code></td>
+        <td>Top margin (CSS units)</td>
+        <td>0</td>
+        <td><code>marginTop=10mm</code></td>
+      </tr>
+      <tr>
+        <td><code>marginRight</code></td>
+        <td>Right margin (CSS units)</td>
+        <td>0</td>
+        <td><code>marginRight=10mm</code></td>
+      </tr>
+      <tr>
+        <td><code>marginBottom</code></td>
+        <td>Bottom margin (CSS units)</td>
+        <td>0</td>
+        <td><code>marginBottom=10mm</code></td>
+      </tr>
+      <tr>
+        <td><code>marginLeft</code></td>
+        <td>Left margin (CSS units)</td>
+        <td>0</td>
+        <td><code>marginLeft=10mm</code></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <h2>Examples</h2>
+  
+  <div class="api-example">
+    <div class="example-title">Basic Screenshot:</div>
+    <pre><code>GET /screenshot?url=https://example.com</code></pre>
+  </div>
+  
+  <div class="api-example">
+    <div class="example-title">High-Resolution Screenshot:</div>
+    <pre><code>GET /screenshot?url=https://example.com&width=1920&height=1080</code></pre>
+  </div>
+  
+  <div class="api-example">
+    <div class="example-title">Full-Page JPEG Screenshot with 90% Quality:</div>
+    <pre><code>GET /screenshot?url=https://example.com&format=jpeg&quality=90&fullPage=true</code></pre>
+  </div>
+  
+  <div class="api-example">
+    <div class="example-title">Wait for Specific Element to Load:</div>
+    <pre><code>GET /screenshot?url=https://example.com&waitForSelector=#main-content&minLoadTime=1000</code></pre>
+  </div>
+  
+  <div class="api-example">
+    <div class="example-title">Capture Specific Element Only:</div>
+    <pre><code>GET /screenshot?url=https://example.com&selector=#hero-section</code></pre>
+  </div>
+  
+  <div class="api-example">
+    <div class="example-title">Generate PDF:</div>
+    <pre><code>GET /screenshot?url=https://example.com&format=pdf&pdfFormat=A4&marginTop=10mm</code></pre>
+  </div>
+  
+  <h2>Response Headers</h2>
+  
+  <p>The API includes these custom headers in responses:</p>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>Header</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>X-Cache</code></td>
+        <td>"HIT" if served from cache, "MISS" if freshly generated</td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <h2>API Rate Limiting</h2>
+  
+  <p>
+    To prevent abuse, the API implements rate limiting. By default, clients are limited to 60 requests per minute.
+    You can configure this in the environment variables.
+  </p>
+  
+  <h2>API Authentication</h2>
+  
+  <p>
+    For additional security, you can enable API key authentication by setting <code>API_KEY_ENABLED=true</code> in your environment.
+    When enabled, clients must include the API key either as a query parameter (<code>?apiKey=your-secret-key</code>) or 
+    in the request header (<code>X-API-Key: your-secret-key</code>).
+  </p>
+  
+  <h2>Self-Hosting</h2>
+  
+  <p>
+    This API is designed to be easily self-hosted using Docker. See the README.md for deployment instructions.
+  </p>
+  
+  <footer style="margin-top: 50px; border-top: 1px solid #eee; padding-top: 20px; color: #777;">
+    <p>ShotAPI - Open Source Project</p>
+  </footer>
+</body>
+</html>
