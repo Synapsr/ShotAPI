@@ -38,6 +38,13 @@ router.get('/docs', (req, res) => {
 router.get('/screenshot', 
   validator.validateScreenshotParams, 
   auth.checkApiKey,
+  (req, res, next) => {
+    // Add cross-origin headers to allow embedding in other sites
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
+    res.setHeader('Cross-Origin-Opener-Policy', 'unsafe-none');
+    next();
+  },
   screenshotController.captureScreenshot
 );
 

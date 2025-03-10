@@ -20,11 +20,17 @@ const port = process.env.PORT || 3000;
 app.set('trust proxy', 1);
 
 // Apply security middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: false, // Disable CORP to allow embedding screenshots
+  crossOriginEmbedderPolicy: false, // Disable COEP to allow loading in iframes
+  contentSecurityPolicy: false, // Disable CSP to allow embedding in various contexts
+}));
 app.use(cors({
   origin: process.env.ALLOWED_ORIGINS ? 
     (process.env.ALLOWED_ORIGINS === '*' ? '*' : process.env.ALLOWED_ORIGINS.split(',')) 
-    : '*'
+    : '*',
+  credentials: true,
+  exposedHeaders: ['Content-Disposition', 'X-Cache'],
 }));
 
 // Apply rate limiting
