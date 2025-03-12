@@ -22,6 +22,19 @@ exports.captureScreenshot = async (req, res) => {
     const params = req.query;
     const url = params.url;
     
+    // Check if caching is explicitly disabled
+    if (params.cacheTime === '0' || params.cacheTime === 'false' || params.cacheTime === false) {
+      logger.info(`Caching explicitly disabled for ${url}`);
+      const screenshot = await browserService.captureScreenshot(params);
+      
+      // Set appropriate content type
+      const contentType = getContentType(params.format || 'png');
+      res.set('Content-Type', contentType);
+      res.set('X-Cache', 'DISABLED');
+      
+      return res.send(screenshot);
+    }
+    
     // Generate a cache key based on the request parameters
     const cacheKey = generateCacheKey(params);
     logger.info(`Generated cache key for ${url}: ${cacheKey}`);
@@ -47,7 +60,7 @@ exports.captureScreenshot = async (req, res) => {
         logger.info(`Cache MISS for ${url} with key ${cacheKey}`);
       }
     } else {
-      logger.info(`Caching disabled for this request`);
+      logger.info(`Caching disabled for this request (cacheTime: ${cacheTime})`);
     }
     
     // No cache hit, capture a new screenshot
@@ -132,11 +145,37 @@ exports.clearCache = async (req, res) => {
  * @returns {String} - The cache key
  */
 function generateCacheKey(params) {
+  // Create a shallow copy of params to avoid modifying the original
+  const paramsToCache = {...params};
+  
+  // Make sure URL is consistent (with or without trailing slash)
+  if (paramsToCache.url) {
+    if (paramsToCache.url.endsWith('/')) {
+      paramsToCache.url = paramsToCache.url.slice(0, -1);
+    }
+  }
+  
+  // Normalize boolean parameters to ensure consistent cache keys
+  const booleanParams = ['fullPage', 'darkMode', 'transparent', 'blockAds'];
+  for (const param of booleanParams) {
+    if (param in paramsToCache) {
+      // Normalize to string 'true' or 'false'
+      if (paramsToCache[param] === true || paramsToCache[param] === 'true') {
+        paramsToCache[param] = 'true';
+      } else if (paramsToCache[param] === false || paramsToCache[param] === 'false') {
+        paramsToCache[param] = 'false';
+      }
+    }
+  }
+  
+  // Remove apiKey from cache key calculation
+  delete paramsToCache.apiKey;
+  
   // Sort keys to ensure consistent ordering
-  const ordered = Object.keys(params)
+  const ordered = Object.keys(paramsToCache)
     .sort()
     .reduce((obj, key) => {
-      obj[key] = params[key];
+      obj[key] = paramsToCache[key];
       return obj;
     }, {});
   

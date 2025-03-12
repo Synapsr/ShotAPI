@@ -91,6 +91,15 @@ exports.set = async (key, data, ttl) => {
       return false;
     }
     
+    // For very short TTLs (e.g. 1 second), don't bother with file cache, use memory only
+    if (ttl < 5) {
+      // Store in memory cache only for short TTLs
+      memoryCache.set(key, data, ttl);
+      logger.debug(`Short TTL (${ttl}s): Using memory cache only for key: ${key}`);
+      return true;
+    }
+    
+    // Regular caching behavior for longer TTLs
     // Store in memory cache
     memoryCache.set(key, data, ttl);
     

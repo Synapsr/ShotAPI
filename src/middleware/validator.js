@@ -17,7 +17,10 @@ const screenshotSchema = Joi.object({
   fullPage: Joi.string().valid('true', 'false', true, false),
   minLoadTime: Joi.number().integer().min(0).max(30000),
   maxLoadTime: Joi.number().integer().min(1000).max(60000),
-  cacheTime: Joi.number().integer().min(0),
+  cacheTime: Joi.alternatives().try(
+    Joi.number().integer().min(0),
+    Joi.string().valid('0', 'false', false)
+  ),
   darkMode: Joi.string().valid('true', 'false', true, false),
   userAgent: Joi.string(),
   selector: Joi.string(),
